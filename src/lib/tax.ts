@@ -1,17 +1,19 @@
 import { db, type TaxRate } from '@/db';
 
-export type TaxCategory = 'standard' | 'reduced' | 'exempt';
+export type TaxCategory = 'standard' | 'reduced' | 'exempt' | 'other';
 
 export const TAX_CATEGORY_LABELS: Record<TaxCategory, string> = {
   standard: '標準税率',
   reduced: '軽減税率',
   exempt: '非課税',
+  other: 'その他',
 };
 
 export const TAX_CATEGORY_SHORT: Record<TaxCategory, string> = {
   standard: '10%',
   reduced: '8%(軽減)',
   exempt: '非課税',
+  other: 'その他',
 };
 
 /**
