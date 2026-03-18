@@ -15,6 +15,7 @@ export default function TaxRatesPage() {
   const [showChangeDialog, setShowChangeDialog] = useState(false);
   const [newStandard, setNewStandard] = useState('');
   const [newReduced, setNewReduced] = useState('');
+  const [newOther, setNewOther] = useState('');
   const [newEffectiveDate, setNewEffectiveDate] = useState('');
 
   const taxRates = useLiveQuery(() => db.taxRates.toArray()) ?? [];
