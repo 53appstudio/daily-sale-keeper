@@ -38,8 +38,9 @@ export default function TaxRatesPage() {
   const handleApply = async () => {
     const stdRate = parseInt(newStandard, 10);
     const redRate = parseInt(newReduced, 10);
+    const othRate = parseInt(newOther, 10);
 
-    if (isNaN(stdRate) || stdRate < 0 || stdRate > 100 || isNaN(redRate) || redRate < 0 || redRate > 100) {
+    if (isNaN(stdRate) || stdRate < 0 || stdRate > 100 || isNaN(redRate) || redRate < 0 || redRate > 100 || isNaN(othRate) || othRate < 0 || othRate > 100) {
       toast({ title: '税率は0〜100の整数で入力してください', variant: 'destructive' });
       return;
     }
@@ -63,11 +64,19 @@ export default function TaxRatesPage() {
         effectiveFrom: newEffectiveDate,
         createdAt: new Date().toISOString(),
       },
+      {
+        id: crypto.randomUUID(),
+        category: 'other',
+        rate: othRate,
+        effectiveFrom: newEffectiveDate,
+        createdAt: new Date().toISOString(),
+      },
     ]);
 
     setShowChangeDialog(false);
     setNewStandard('');
     setNewReduced('');
+    setNewOther('');
     setNewEffectiveDate('');
     toast({ title: '税率を更新しました' });
   };
