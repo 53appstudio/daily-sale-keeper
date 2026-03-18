@@ -51,6 +51,7 @@ export default function RegisterPage() {
   useEffect(() => {
     getEffectiveTaxRate('standard', today).then(setStandardRate);
     getEffectiveTaxRate('reduced', today).then(setReducedRate);
+    getEffectiveTaxRate('other', today).then(setOtherRate);
   }, [today]);
 
   // Update tax rate when category changes
