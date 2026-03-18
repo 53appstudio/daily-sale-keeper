@@ -29,6 +29,8 @@ export default function RegisterPage() {
   const [amountStr, setAmountStr] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit'>('cash');
   const [taxRate, setTaxRate] = useState(10);
+  const [standardRate, setStandardRate] = useState(10);
+  const [reducedRate, setReducedRate] = useState(8);
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [deletingTxId, setDeletingTxId] = useState<string | null>(null);
 
