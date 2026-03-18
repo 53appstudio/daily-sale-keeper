@@ -69,5 +69,6 @@ export function calculateTax(amountIncTax: number, taxRate: number) {
 export function formatTaxLabel(category: TaxCategory, rate: number): string {
   if (category === 'exempt') return '非課税';
   if (category === 'reduced') return `${rate}%(軽減)`;
+  if (category === 'other') return `${rate}%(その他)`;
   return `${rate}%`;
 }
