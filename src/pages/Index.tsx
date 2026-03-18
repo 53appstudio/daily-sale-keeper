@@ -46,6 +46,12 @@ export default function RegisterPage() {
     }
   }, [departments, departmentId]);
 
+  // Load all rates for labels
+  useEffect(() => {
+    getEffectiveTaxRate('standard', today).then(setStandardRate);
+    getEffectiveTaxRate('reduced', today).then(setReducedRate);
+  }, [today]);
+
   // Update tax rate when category changes
   useEffect(() => {
     getEffectiveTaxRate(taxCategory, today).then(setTaxRate);
