@@ -3,7 +3,7 @@ import Dexie, { type Table } from 'dexie';
 export interface Department {
   id: string;
   name: string;
-  defaultTaxCategory: 'standard' | 'reduced' | 'exempt';
+  defaultTaxCategory: 'standard' | 'reduced' | 'exempt' | 'other';
   sortOrder: number;
   createdAt: string;
 }
