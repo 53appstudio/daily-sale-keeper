@@ -42,11 +42,12 @@ export async function getEffectiveTaxRate(
  */
 export async function getCurrentTaxRates(): Promise<Record<TaxCategory, number>> {
   const today = new Date().toISOString().split('T')[0];
-  const [standard, reduced] = await Promise.all([
+  const [standard, reduced, other] = await Promise.all([
     getEffectiveTaxRate('standard', today),
     getEffectiveTaxRate('reduced', today),
+    getEffectiveTaxRate('other', today),
   ]);
-  return { standard, reduced, exempt: 0 };
+  return { standard, reduced, exempt: 0, other };
 }
 
 /**
