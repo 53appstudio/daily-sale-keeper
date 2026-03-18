@@ -34,7 +34,7 @@ export async function getEffectiveTaxRate(
     .filter((r) => r.effectiveFrom <= date)
     .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom));
 
-  return effective.length > 0 ? effective[0].rate : category === 'standard' ? 10 : 8;
+  return effective.length > 0 ? effective[0].rate : category === 'standard' ? 10 : category === 'reduced' ? 8 : 0;
 }
 
 /**
