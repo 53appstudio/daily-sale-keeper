@@ -101,7 +101,7 @@ export function EditTransactionModal({ transaction, open, onClose }: EditTransac
                 onValueChange={(v) => setTaxCategory(v as TaxCategory)}
                 className="flex gap-4"
               >
-                {(['standard', 'reduced', 'exempt'] as const).map((cat) => (
+                {(['standard', 'reduced', 'exempt', 'other'] as const).map((cat) => (
                   <div key={cat} className="flex items-center gap-2">
                     <RadioGroupItem value={cat} id={`edit-tax-${cat}`} />
                     <Label htmlFor={`edit-tax-${cat}`} className="cursor-pointer">

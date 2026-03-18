@@ -15,6 +15,7 @@ export default function TaxRatesPage() {
   const [showChangeDialog, setShowChangeDialog] = useState(false);
   const [newStandard, setNewStandard] = useState('');
   const [newReduced, setNewReduced] = useState('');
+  const [newOther, setNewOther] = useState('');
   const [newEffectiveDate, setNewEffectiveDate] = useState('');
 
   const taxRates = useLiveQuery(() => db.taxRates.toArray()) ?? [];
@@ -37,8 +38,9 @@ export default function TaxRatesPage() {
   const handleApply = async () => {
     const stdRate = parseInt(newStandard, 10);
     const redRate = parseInt(newReduced, 10);
+    const othRate = parseInt(newOther, 10);
 
-    if (isNaN(stdRate) || stdRate < 0 || stdRate > 100 || isNaN(redRate) || redRate < 0 || redRate > 100) {
+    if (isNaN(stdRate) || stdRate < 0 || stdRate > 100 || isNaN(redRate) || redRate < 0 || redRate > 100 || isNaN(othRate) || othRate < 0 || othRate > 100) {
       toast({ title: '税率は0〜100の整数で入力してください', variant: 'destructive' });
       return;
     }
@@ -62,11 +64,19 @@ export default function TaxRatesPage() {
         effectiveFrom: newEffectiveDate,
         createdAt: new Date().toISOString(),
       },
+      {
+        id: crypto.randomUUID(),
+        category: 'other',
+        rate: othRate,
+        effectiveFrom: newEffectiveDate,
+        createdAt: new Date().toISOString(),
+      },
     ]);
 
     setShowChangeDialog(false);
     setNewStandard('');
     setNewReduced('');
+    setNewOther('');
     setNewEffectiveDate('');
     toast({ title: '税率を更新しました' });
   };
@@ -90,10 +100,14 @@ export default function TaxRatesPage() {
               <div className="flex justify-between py-2 px-3 rounded bg-secondary/50">
                 <span>非課税</span><span className="font-semibold text-muted-foreground">0％（変更不可）</span>
               </div>
+              <div className="flex justify-between py-2 px-3 rounded bg-secondary/50">
+                <span>その他</span><span className="font-semibold">{getCurrentRate('other')}％</span>
+              </div>
             </div>
             <Button onClick={() => {
               setNewStandard(String(getCurrentRate('standard')));
               setNewReduced(String(getCurrentRate('reduced')));
+              setNewOther(String(getCurrentRate('other')));
               setShowChangeDialog(true);
             }}>
               税率を変更する
@@ -111,9 +125,10 @@ export default function TaxRatesPage() {
                 {historyDates.map((date) => {
                   const std = taxRates.find((r) => r.category === 'standard' && r.effectiveFrom === date);
                   const red = taxRates.find((r) => r.category === 'reduced' && r.effectiveFrom === date);
+                  const oth = taxRates.find((r) => r.category === 'other' && r.effectiveFrom === date);
                   return (
                     <div key={date} className="py-2 px-3 rounded bg-secondary/50">
-                      {date}〜　標準{std?.rate ?? '?'}% ／ 軽減{red?.rate ?? 'なし'}%
+                      {date}〜　標準{std?.rate ?? '?'}% ／ 軽減{red?.rate ?? 'なし'}% ／ その他{oth?.rate ?? '?'}%
                     </div>
                   );
                 })}
@@ -142,6 +157,10 @@ export default function TaxRatesPage() {
             <div className="space-y-2">
               <Label>軽減税率（％）</Label>
               <Input type="number" min={0} max={100} value={newReduced} onChange={(e) => setNewReduced(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>その他税率（％）</Label>
+              <Input type="number" min={0} max={100} value={newOther} onChange={(e) => setNewOther(e.target.value)} />
             </div>
             <p className="text-xs text-muted-foreground">※ 過去の売上には影響しません</p>
           </div>

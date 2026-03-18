@@ -122,6 +122,7 @@ export default function DepartmentsPage() {
   const taxCatShort = (cat: TaxCategory) => {
     if (cat === 'standard') return '10%';
     if (cat === 'reduced') return '8%(軽減)';
+    if (cat === 'other') return 'その他';
     return '非課税';
   };
 
@@ -153,6 +154,7 @@ export default function DepartmentsPage() {
                       <SelectItem value="standard">10%</SelectItem>
                       <SelectItem value="reduced">8%(軽減)</SelectItem>
                       <SelectItem value="exempt">非課税</SelectItem>
+                      <SelectItem value="other">その他</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -234,6 +236,7 @@ export default function DepartmentsPage() {
                   <SelectItem value="standard">10%</SelectItem>
                   <SelectItem value="reduced">8%(軽減)</SelectItem>
                   <SelectItem value="exempt">非課税</SelectItem>
+                  <SelectItem value="other">その他</SelectItem>
                 </SelectContent>
               </Select>
             </div>

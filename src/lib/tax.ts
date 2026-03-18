@@ -1,17 +1,19 @@
 import { db, type TaxRate } from '@/db';
 
-export type TaxCategory = 'standard' | 'reduced' | 'exempt';
+export type TaxCategory = 'standard' | 'reduced' | 'exempt' | 'other';
 
 export const TAX_CATEGORY_LABELS: Record<TaxCategory, string> = {
   standard: '標準税率',
   reduced: '軽減税率',
   exempt: '非課税',
+  other: 'その他',
 };
 
 export const TAX_CATEGORY_SHORT: Record<TaxCategory, string> = {
   standard: '10%',
   reduced: '8%(軽減)',
   exempt: '非課税',
+  other: 'その他',
 };
 
 /**
@@ -32,7 +34,7 @@ export async function getEffectiveTaxRate(
     .filter((r) => r.effectiveFrom <= date)
     .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom));
 
-  return effective.length > 0 ? effective[0].rate : category === 'standard' ? 10 : 8;
+  return effective.length > 0 ? effective[0].rate : category === 'standard' ? 10 : category === 'reduced' ? 8 : 0;
 }
 
 /**
@@ -40,11 +42,12 @@ export async function getEffectiveTaxRate(
  */
 export async function getCurrentTaxRates(): Promise<Record<TaxCategory, number>> {
   const today = new Date().toISOString().split('T')[0];
-  const [standard, reduced] = await Promise.all([
+  const [standard, reduced, other] = await Promise.all([
     getEffectiveTaxRate('standard', today),
     getEffectiveTaxRate('reduced', today),
+    getEffectiveTaxRate('other', today),
   ]);
-  return { standard, reduced, exempt: 0 };
+  return { standard, reduced, exempt: 0, other };
 }
 
 /**
@@ -66,5 +69,6 @@ export function calculateTax(amountIncTax: number, taxRate: number) {
 export function formatTaxLabel(category: TaxCategory, rate: number): string {
   if (category === 'exempt') return '非課税';
   if (category === 'reduced') return `${rate}%(軽減)`;
+  if (category === 'other') return `${rate}%(その他)`;
   return `${rate}%`;
 }

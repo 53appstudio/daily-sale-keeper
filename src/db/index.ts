@@ -3,7 +3,7 @@ import Dexie, { type Table } from 'dexie';
 export interface Department {
   id: string;
   name: string;
-  defaultTaxCategory: 'standard' | 'reduced' | 'exempt';
+  defaultTaxCategory: 'standard' | 'reduced' | 'exempt' | 'other';
   sortOrder: number;
   createdAt: string;
 }
@@ -15,7 +15,7 @@ export interface Transaction {
   departmentId: string;
   departmentName: string;
   amount: number;
-  taxCategory: 'standard' | 'reduced' | 'exempt';
+  taxCategory: 'standard' | 'reduced' | 'exempt' | 'other';
   taxRate: number;
   taxExcludedAmount: number;
   taxAmount: number;
@@ -27,7 +27,7 @@ export interface Transaction {
 
 export interface TaxRate {
   id: string;
-  category: 'standard' | 'reduced' | 'exempt';
+  category: 'standard' | 'reduced' | 'exempt' | 'other';
   rate: number;
   effectiveFrom: string;
   createdAt: string;
@@ -79,6 +79,13 @@ export async function seedInitialData() {
       {
         id: crypto.randomUUID(),
         category: 'exempt',
+        rate: 0,
+        effectiveFrom: '2000-01-01',
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: crypto.randomUUID(),
+        category: 'other',
         rate: 0,
         effectiveFrom: '2000-01-01',
         createdAt: new Date().toISOString(),

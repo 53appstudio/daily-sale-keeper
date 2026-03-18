@@ -31,6 +31,7 @@ export default function RegisterPage() {
   const [taxRate, setTaxRate] = useState(10);
   const [standardRate, setStandardRate] = useState(10);
   const [reducedRate, setReducedRate] = useState(8);
+  const [otherRate, setOtherRate] = useState(0);
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [deletingTxId, setDeletingTxId] = useState<string | null>(null);
 
@@ -50,6 +51,7 @@ export default function RegisterPage() {
   useEffect(() => {
     getEffectiveTaxRate('standard', today).then(setStandardRate);
     getEffectiveTaxRate('reduced', today).then(setReducedRate);
+    getEffectiveTaxRate('other', today).then(setOtherRate);
   }, [today]);
 
   // Update tax rate when category changes
@@ -139,11 +141,11 @@ export default function RegisterPage() {
                   onValueChange={(v) => setTaxCategory(v as TaxCategory)}
                   className="flex gap-3"
                 >
-                  {(['standard', 'reduced', 'exempt'] as const).map((cat) => (
+                  {(['standard', 'reduced', 'exempt', 'other'] as const).map((cat) => (
                     <div key={cat} className="flex items-center gap-2">
                       <RadioGroupItem value={cat} id={`tax-${cat}`} />
                       <Label htmlFor={`tax-${cat}`} className="cursor-pointer text-sm">
-                        {cat === 'standard' ? `${standardRate}%` : cat === 'reduced' ? `${reducedRate}%(軽減)` : '非課税'}
+                        {cat === 'standard' ? `${standardRate}%` : cat === 'reduced' ? `${reducedRate}%(軽減)` : cat === 'exempt' ? '非課税' : `${otherRate}%(その他)`}
                       </Label>
                     </div>
                   ))}
