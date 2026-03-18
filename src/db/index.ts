@@ -27,7 +27,7 @@ export interface Transaction {
 
 export interface TaxRate {
   id: string;
-  category: 'standard' | 'reduced' | 'exempt';
+  category: 'standard' | 'reduced' | 'exempt' | 'other';
   rate: number;
   effectiveFrom: string;
   createdAt: string;
