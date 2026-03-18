@@ -28,5 +28,7 @@ const App = () => (
     </TooltipProvider>
   </QueryClientProvider>
 );
+// HashRouter uses URL hash for routing (e.g. /#/, /#/journal)
+// This works on GitHub Pages without server-side config
 
 export default App;
