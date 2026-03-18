@@ -100,6 +100,9 @@ export default function TaxRatesPage() {
               <div className="flex justify-between py-2 px-3 rounded bg-secondary/50">
                 <span>非課税</span><span className="font-semibold text-muted-foreground">0％（変更不可）</span>
               </div>
+              <div className="flex justify-between py-2 px-3 rounded bg-secondary/50">
+                <span>その他</span><span className="font-semibold">{getCurrentRate('other')}％</span>
+              </div>
             </div>
             <Button onClick={() => {
               setNewStandard(String(getCurrentRate('standard')));
