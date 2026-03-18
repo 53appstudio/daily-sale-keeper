@@ -122,6 +122,7 @@ export default function DepartmentsPage() {
   const taxCatShort = (cat: TaxCategory) => {
     if (cat === 'standard') return '10%';
     if (cat === 'reduced') return '8%(軽減)';
+    if (cat === 'other') return 'その他';
     return '非課税';
   };
 
