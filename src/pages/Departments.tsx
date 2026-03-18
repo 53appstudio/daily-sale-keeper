@@ -154,6 +154,7 @@ export default function DepartmentsPage() {
                       <SelectItem value="standard">10%</SelectItem>
                       <SelectItem value="reduced">8%(軽減)</SelectItem>
                       <SelectItem value="exempt">非課税</SelectItem>
+                      <SelectItem value="other">その他</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
