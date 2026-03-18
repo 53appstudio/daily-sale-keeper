@@ -107,6 +107,7 @@ export default function TaxRatesPage() {
             <Button onClick={() => {
               setNewStandard(String(getCurrentRate('standard')));
               setNewReduced(String(getCurrentRate('reduced')));
+              setNewOther(String(getCurrentRate('other')));
               setShowChangeDialog(true);
             }}>
               税率を変更する
