@@ -82,7 +82,7 @@ export default function JournalPage() {
   };
 
   const taxCategoryLabel = (cat: string) => {
-    const labels: Record<string, string> = { standard: '標準税率', reduced: '軽減税率', exempt: '非課税' };
+    const labels: Record<string, string> = { standard: '標準税率', reduced: '軽減税率', exempt: '非課税', other: 'その他' };
     return labels[cat] ?? cat;
   };
 
