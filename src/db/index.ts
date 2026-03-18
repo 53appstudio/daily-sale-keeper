@@ -83,6 +83,13 @@ export async function seedInitialData() {
         effectiveFrom: '2000-01-01',
         createdAt: new Date().toISOString(),
       },
+      {
+        id: crypto.randomUUID(),
+        category: 'other',
+        rate: 0,
+        effectiveFrom: '2000-01-01',
+        createdAt: new Date().toISOString(),
+      },
     ]);
   }
 }

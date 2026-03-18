@@ -63,7 +63,7 @@ export default function JournalPage() {
         tx.time,
         tx.departmentName,
         tx.amount,
-        tx.taxCategory === 'standard' ? '標準税率' : tx.taxCategory === 'reduced' ? '軽減税率' : '非課税',
+        tx.taxCategory === 'standard' ? '標準税率' : tx.taxCategory === 'reduced' ? '軽減税率' : tx.taxCategory === 'other' ? 'その他' : '非課税',
         tx.taxRate,
         tx.taxExcludedAmount,
         tx.taxAmount,

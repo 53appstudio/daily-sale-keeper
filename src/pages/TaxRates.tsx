@@ -158,6 +158,10 @@ export default function TaxRatesPage() {
               <Label>軽減税率（％）</Label>
               <Input type="number" min={0} max={100} value={newReduced} onChange={(e) => setNewReduced(e.target.value)} />
             </div>
+            <div className="space-y-2">
+              <Label>その他税率（％）</Label>
+              <Input type="number" min={0} max={100} value={newOther} onChange={(e) => setNewOther(e.target.value)} />
+            </div>
             <p className="text-xs text-muted-foreground">※ 過去の売上には影響しません</p>
           </div>
           <DialogFooter>
