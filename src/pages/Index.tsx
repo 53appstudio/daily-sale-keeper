@@ -143,7 +143,7 @@ export default function RegisterPage() {
                     <div key={cat} className="flex items-center gap-2">
                       <RadioGroupItem value={cat} id={`tax-${cat}`} />
                       <Label htmlFor={`tax-${cat}`} className="cursor-pointer text-sm">
-                        {cat === 'standard' ? `${taxRate}%` : cat === 'reduced' ? `${taxRate}%(軽減)` : '非課税'}
+                        {cat === 'standard' ? `${standardRate}%` : cat === 'reduced' ? `${reducedRate}%(軽減)` : '非課税'}
                       </Label>
                     </div>
                   ))}

@@ -133,29 +133,31 @@ export default function DepartmentsPage() {
 
         <Card className="mb-6">
           <CardContent className="p-6 space-y-4">
-            <div className="flex gap-3 items-end">
-              <div className="flex-1 space-y-2">
+            <div className="space-y-3">
+              <div className="space-y-2">
                 <Label>部門名</Label>
                 <Input
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="新しい部門名"
                   maxLength={20}
-                  className="h-12"
+                  className="h-12 text-base"
                 />
               </div>
-              <div className="w-40 space-y-2">
-                <Label>デフォルト税区分</Label>
-                <Select value={newTaxCat} onValueChange={(v) => setNewTaxCat(v as TaxCategory)}>
-                  <SelectTrigger className="h-12"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="standard">10%</SelectItem>
-                    <SelectItem value="reduced">8%(軽減)</SelectItem>
-                    <SelectItem value="exempt">非課税</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="flex gap-3 items-end">
+                <div className="flex-1 space-y-2">
+                  <Label>デフォルト税区分</Label>
+                  <Select value={newTaxCat} onValueChange={(v) => setNewTaxCat(v as TaxCategory)}>
+                    <SelectTrigger className="h-12"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="standard">10%</SelectItem>
+                      <SelectItem value="reduced">8%(軽減)</SelectItem>
+                      <SelectItem value="exempt">非課税</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button className="h-12 px-6" onClick={handleAdd}>追加</Button>
               </div>
-              <Button className="h-12" onClick={handleAdd}>追加</Button>
             </div>
           </CardContent>
         </Card>
