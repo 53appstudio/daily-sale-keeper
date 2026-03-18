@@ -125,9 +125,10 @@ export default function TaxRatesPage() {
                 {historyDates.map((date) => {
                   const std = taxRates.find((r) => r.category === 'standard' && r.effectiveFrom === date);
                   const red = taxRates.find((r) => r.category === 'reduced' && r.effectiveFrom === date);
+                  const oth = taxRates.find((r) => r.category === 'other' && r.effectiveFrom === date);
                   return (
                     <div key={date} className="py-2 px-3 rounded bg-secondary/50">
-                      {date}〜　標準{std?.rate ?? '?'}% ／ 軽減{red?.rate ?? 'なし'}%
+                      {date}〜　標準{std?.rate ?? '?'}% ／ 軽減{red?.rate ?? 'なし'}% ／ その他{oth?.rate ?? '?'}%
                     </div>
                   );
                 })}
