@@ -15,7 +15,7 @@ export interface Transaction {
   departmentId: string;
   departmentName: string;
   amount: number;
-  taxCategory: 'standard' | 'reduced' | 'exempt';
+  taxCategory: 'standard' | 'reduced' | 'exempt' | 'other';
   taxRate: number;
   taxExcludedAmount: number;
   taxAmount: number;
