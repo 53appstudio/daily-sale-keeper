@@ -31,6 +31,7 @@ export default function RegisterPage() {
   const [taxRate, setTaxRate] = useState(10);
   const [standardRate, setStandardRate] = useState(10);
   const [reducedRate, setReducedRate] = useState(8);
+  const [otherRate, setOtherRate] = useState(0);
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [deletingTxId, setDeletingTxId] = useState<string | null>(null);
 
