@@ -13,7 +13,7 @@ import {
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Trash2, Plus, Minus, Banknote, CreditCard, X } from 'lucide-react';
+import { Trash2, Plus, Minus, Banknote, CreditCard, X, RotateCcw } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 
 interface EditSaleModalProps {

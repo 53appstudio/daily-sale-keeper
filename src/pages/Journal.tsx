@@ -43,6 +43,7 @@ function exportJournalCsv(
   taxTotal: number,
   cashTotal: number,
   creditTotal: number,
+  refundTotal: number,
 ) {
   const rows: string[] = [];
   const BOM = '\uFEFF'; // Excel で文字化けしないよう BOM 付き UTF-8
@@ -60,6 +61,9 @@ function exportJournalCsv(
   rows.push(rowToCsv(['■ 支払方法別']));
   rows.push(rowToCsv(['現金', cashTotal]));
   rows.push(rowToCsv(['掛売', creditTotal]));
+  if (refundTotal !== 0) {
+    rows.push(rowToCsv(['返金', refundTotal]));
+  }
   rows.push('');
   rows.push(rowToCsv(['■ 総計']));
   rows.push(rowToCsv(['税込合計', grossTotal]));
