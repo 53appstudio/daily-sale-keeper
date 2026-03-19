@@ -77,18 +77,22 @@ export default function RegisterPage() {
   const received = parseInt(receivedStr, 10) || 0;
   const change = received - subtotal;
 
-  const selectedDept = departments.find(d => d.id === selectedDeptId);
+  // useLiveQuery は非同期のため初回は空配列 → departments[0] をフォールバックで使う
+  const effectiveDeptId = selectedDeptId || departments[0]?.id || '';
+  const selectedDept = departments.find(d => d.id === effectiveDeptId);
 
   // カートに追加
   const handleAddToCart = () => {
-    if (price < 1 || !selectedDeptId) return;
+    if (price < 1 || !effectiveDeptId) return;
     const amount = price * qty;
-    const dept = departments.find(d => d.id === selectedDeptId);
+    const dept = departments.find(d => d.id === effectiveDeptId);
     const taxCat: TaxCategory = dept?.defaultTaxCategory ?? 'standard';
     const { taxExcludedAmount, taxAmount } = calculateTax(amount, taxRate);
+    // selectedDeptId 未設定なら確定させる
+    if (!selectedDeptId && effectiveDeptId) setSelectedDeptId(effectiveDeptId);
     setCart(prev => [...prev, {
       tempId: crypto.randomUUID(),
-      departmentId: selectedDeptId,
+      departmentId: effectiveDeptId,
       departmentName: dept?.name ?? '不明',
       unitPrice: price,
       quantity: qty,
@@ -176,7 +180,7 @@ export default function RegisterPage() {
               {departments.map(d => (
                 <Button
                   key={d.id}
-                  variant={selectedDeptId === d.id ? 'default' : 'outline'}
+                  variant={effectiveDeptId === d.id ? 'default' : 'outline'}
                   className="h-10 px-4 text-sm font-medium"
                   onClick={() => setSelectedDeptId(d.id)}
                 >
@@ -232,7 +236,7 @@ export default function RegisterPage() {
               <Button
                 className="w-full h-12 mt-3 text-base font-bold"
                 onClick={handleAddToCart}
-                disabled={price < 1 || !selectedDeptId}
+                disabled={price < 1 || departments.length === 0}
               >
                 カートに追加
               </Button>
