@@ -41,6 +41,8 @@ interface CompletedSale {
   date: string;
   time: string;
   storeName: string;
+  storeAddress?: string;
+  storePhone?: string;
   taxMode: TaxMode;
 }
 
@@ -51,8 +53,12 @@ export default function RegisterPage() {
   // 設定読み込み
   const taxModeSetting = useLiveQuery(() => db.settings.get('taxMode'));
   const storeNameSetting = useLiveQuery(() => db.settings.get('storeName'));
+  const storeAddressSetting = useLiveQuery(() => db.settings.get('storeAddress'));
+  const storePhoneSetting = useLiveQuery(() => db.settings.get('storePhone'));
   const taxMode: TaxMode = (taxModeSetting?.value as TaxMode) ?? 'inclusive';
   const storeName = storeNameSetting?.value ?? 'シンプルレジ';
+  const storeAddress = storeAddressSetting?.value ?? '';
+  const storePhone = storePhoneSetting?.value ?? '';
 
   const [phase, setPhase] = useState<Phase>('input');
   const [selectedDeptId, setSelectedDeptId] = useState('');
@@ -177,6 +183,8 @@ export default function RegisterPage() {
       date: today,
       time: now.toTimeString().slice(0, 5),
       storeName,
+      storeAddress,
+      storePhone,
       taxMode,
     });
     setCart([]);

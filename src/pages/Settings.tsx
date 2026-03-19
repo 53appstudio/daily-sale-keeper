@@ -20,6 +20,24 @@ export default function SettingsPage() {
   // 店舗名
   const storeNameSetting = useLiveQuery(() => db.settings.get('storeName'));
   const [storeNameInput, setStoreNameInput] = useState('');
+
+  // 住所
+  const addressSetting = useLiveQuery(() => db.settings.get('storeAddress'));
+  const [addressInput, setAddressInput] = useState('');
+  useEffect(() => {
+    if (addressSetting !== undefined) {
+      setAddressInput(addressSetting?.value ?? '');
+    }
+  }, [addressSetting]);
+
+  // 連絡先（電話番号など）
+  const phoneSetting = useLiveQuery(() => db.settings.get('storePhone'));
+  const [phoneInput, setPhoneInput] = useState('');
+  useEffect(() => {
+    if (phoneSetting !== undefined) {
+      setPhoneInput(phoneSetting?.value ?? '');
+    }
+  }, [phoneSetting]);
   useEffect(() => {
     if (storeNameSetting !== undefined) {
       setStoreNameInput(storeNameSetting?.value ?? '');
@@ -48,6 +66,16 @@ export default function SettingsPage() {
     toast({ title: '店舗名を保存しました' });
   };
 
+  const handleSaveAddress = async () => {
+    await db.settings.put({ key: 'storeAddress', value: addressInput.trim() });
+    toast({ title: '住所を保存しました' });
+  };
+
+  const handleSavePhone = async () => {
+    await db.settings.put({ key: 'storePhone', value: phoneInput.trim() });
+    toast({ title: '連絡先を保存しました' });
+  };
+
   const handleTaxModeChange = async (mode: TaxMode) => {
     setTaxMode(mode);
     await db.settings.put({ key: 'taxMode', value: mode });
@@ -73,19 +101,60 @@ export default function SettingsPage() {
         <h2 className="text-xl font-bold mb-6">設定</h2>
 
         <div className="space-y-6">
-          {/* 店舗名 */}
+          {/* 店舗情報 */}
           <Card>
-            <CardContent className="p-6 space-y-4">
-              <h3 className="font-semibold">店舗名</h3>
-              <div className="flex gap-3">
-                <Input
-                  value={storeNameInput}
-                  onChange={e => setStoreNameInput(e.target.value)}
-                  placeholder="レシートや日計に表示される店舗名"
-                  maxLength={30}
-                  className="flex-1"
-                />
-                <Button onClick={handleSaveStoreName}>保存</Button>
+            <CardContent className="p-6 space-y-5">
+              <h3 className="font-semibold">店舗情報</h3>
+              <p className="text-xs text-muted-foreground -mt-3">
+                レシートや日計のヘッダーに表示されます。
+              </p>
+
+              {/* 店舗名 */}
+              <div className="space-y-1.5">
+                <Label htmlFor="storeName">店舗名</Label>
+                <div className="flex gap-3">
+                  <Input
+                    id="storeName"
+                    value={storeNameInput}
+                    onChange={e => setStoreNameInput(e.target.value)}
+                    placeholder="例: シンプルレジ食堂"
+                    maxLength={30}
+                    className="flex-1"
+                  />
+                  <Button onClick={handleSaveStoreName}>保存</Button>
+                </div>
+              </div>
+
+              {/* 住所 */}
+              <div className="space-y-1.5">
+                <Label htmlFor="storeAddress">住所</Label>
+                <div className="flex gap-3">
+                  <Input
+                    id="storeAddress"
+                    value={addressInput}
+                    onChange={e => setAddressInput(e.target.value)}
+                    placeholder="例: 東京都渋谷区〇〇1-2-3"
+                    maxLength={50}
+                    className="flex-1"
+                  />
+                  <Button onClick={handleSaveAddress}>保存</Button>
+                </div>
+              </div>
+
+              {/* 連絡先 */}
+              <div className="space-y-1.5">
+                <Label htmlFor="storePhone">連絡先</Label>
+                <div className="flex gap-3">
+                  <Input
+                    id="storePhone"
+                    value={phoneInput}
+                    onChange={e => setPhoneInput(e.target.value)}
+                    placeholder="例: 03-1234-5678"
+                    maxLength={30}
+                    className="flex-1"
+                  />
+                  <Button onClick={handleSavePhone}>保存</Button>
+                </div>
               </div>
             </CardContent>
           </Card>

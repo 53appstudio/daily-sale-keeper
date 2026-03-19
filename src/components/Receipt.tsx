@@ -17,12 +17,14 @@ interface CompletedSale {
   grossTotal: number;
   netTotal: number;
   taxTotal: number;
-  paymentMethod: 'cash' | 'credit';
+  paymentMethod: 'cash' | 'credit' | 'refund';
   receivedAmount: number;
   changeAmount: number;
   date: string;
   time: string;
   storeName: string;
+  storeAddress?: string;
+  storePhone?: string;
   taxMode: TaxMode;
 }
 
@@ -36,7 +38,8 @@ function fmt(n: number) {
 
 export function Receipt({ sale }: ReceiptProps) {
   const { cart, grossTotal, netTotal, taxTotal, paymentMethod,
-          receivedAmount, changeAmount, date, time, storeName, taxMode } = sale;
+          receivedAmount, changeAmount, date, time, storeName,
+          storeAddress, storePhone, taxMode } = sale;
 
   const dateLabel = date.replace(/-/g, '/');
 
@@ -47,6 +50,12 @@ export function Receipt({ sale }: ReceiptProps) {
       {/* ヘッダー */}
       <div className="text-center mb-3">
         <div className="text-lg font-bold">{storeName || 'シンプルレジ'}</div>
+        {storeAddress && (
+          <div className="text-xs mt-0.5 text-gray-600">{storeAddress}</div>
+        )}
+        {storePhone && (
+          <div className="text-xs text-gray-600">TEL: {storePhone}</div>
+        )}
         <div className="text-xs mt-1">{dateLabel}　{time}</div>
         <div className="text-xs text-gray-500">{taxMode === 'inclusive' ? '内税（税込）' : '外税（税抜＋消費税）'}</div>
       </div>
@@ -118,6 +127,11 @@ export function Receipt({ sale }: ReceiptProps) {
               <span className="tabular-nums">{fmt(changeAmount)}</span>
             </div>
           </>
+        ) : paymentMethod === 'refund' ? (
+          <div className="flex justify-between text-sm font-bold text-red-600">
+            <span>返　金</span>
+            <span className="tabular-nums">{fmt(grossTotal)}</span>
+          </div>
         ) : (
           <div className="flex justify-between text-sm font-bold">
             <span>掛　売</span>
@@ -132,6 +146,12 @@ export function Receipt({ sale }: ReceiptProps) {
       <div className="text-center text-xs text-gray-500">
         ありがとうございました
       </div>
+      {(storeAddress || storePhone) && (
+        <div className="text-center text-xs text-gray-400 mt-1 space-y-0.5">
+          {storeAddress && <div>{storeAddress}</div>}
+          {storePhone && <div>TEL: {storePhone}</div>}
+        </div>
+      )}
     </div>
   );
 }
