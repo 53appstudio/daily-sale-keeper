@@ -41,7 +41,7 @@ interface EditItem {
 
 export function EditSaleModal({ sale, items, open, onClose }: EditSaleModalProps) {
   const [editItems, setEditItems] = useState<EditItem[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit' | 'refund'>('cash');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -334,7 +334,7 @@ export function EditSaleModal({ sale, items, open, onClose }: EditSaleModalProps
           {/* 支払方法 */}
           <div>
             <Label className="text-xs text-muted-foreground block mb-2">支払方法</Label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <Button variant={paymentMethod === 'cash' ? 'default' : 'outline'}
                 className="h-12 gap-2" onClick={() => setPaymentMethod('cash')}>
                 <Banknote className="h-4 w-4" />現金
@@ -342,6 +342,10 @@ export function EditSaleModal({ sale, items, open, onClose }: EditSaleModalProps
               <Button variant={paymentMethod === 'credit' ? 'default' : 'outline'}
                 className="h-12 gap-2" onClick={() => setPaymentMethod('credit')}>
                 <CreditCard className="h-4 w-4" />掛売
+              </Button>
+              <Button variant={paymentMethod === 'refund' ? 'destructive' : 'outline'}
+                className="h-12 gap-2" onClick={() => setPaymentMethod('refund')}>
+                <RotateCcw className="h-4 w-4" />返金
               </Button>
             </div>
           </div>

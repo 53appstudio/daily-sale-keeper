@@ -77,7 +77,7 @@ function exportJournalCsv(
   const sortedSales = [...sales].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   sortedSales.forEach((sale, idx) => {
     const sItems = items.filter(i => i.saleId === sale.id);
-    const payLabel = sale.paymentMethod === 'cash' ? '現金' : '掛売';
+    const payLabel = sale.paymentMethod === 'cash' ? '現金' : sale.paymentMethod === 'refund' ? '返金' : '掛売';
     if (sItems.length === 0) {
       // 明細なし会計（念のため）
       rows.push(rowToCsv([
@@ -171,11 +171,13 @@ export default function JournalPage() {
   ) ?? [];
 
   // --- 集計 ---
-  const customerCount = sales.length;
-  const grossTotal  = sales.reduce((s, x) => s + (x.grossTotal ?? 0), 0);
+  const customerCount = sales.filter(x => x.paymentMethod !== 'refund').length;
+  const refundCount   = sales.filter(x => x.paymentMethod === 'refund').length;
+  const grossTotal  = sales.reduce((s, x) => s + (x.grossTotal ?? 0), 0); // 返金分はマイナスなので自動的に相殺
   const taxTotal    = sales.reduce((s, x) => s + (x.taxTotal  ?? 0), 0);
   const cashTotal   = sales.filter(x => x.paymentMethod === 'cash').reduce((s, x) => s + (x.grossTotal ?? 0), 0);
   const creditTotal = sales.filter(x => x.paymentMethod === 'credit').reduce((s, x) => s + (x.grossTotal ?? 0), 0);
+  const refundTotal = sales.filter(x => x.paymentMethod === 'refund').reduce((s, x) => s + (x.grossTotal ?? 0), 0); // 負値
 
   // 部門別集計
   const deptMap = new Map<string, { name: string; grossAmount: number; taxAmount: number }>();
@@ -256,9 +258,14 @@ export default function JournalPage() {
                   {/* 顧客数 */}
                   <div className="flex justify-between items-center py-2">
                     <span className="text-muted-foreground">顧客数</span>
-                    <span className="text-2xl font-bold tabular-nums">
-                      {customerCount}<span className="text-base font-normal ml-1">名</span>
-                    </span>
+                    <div className="text-right">
+                      <span className="text-2xl font-bold tabular-nums">
+                        {customerCount}<span className="text-base font-normal ml-1">名</span>
+                      </span>
+                      {refundCount > 0 && (
+                        <div className="text-xs text-destructive tabular-nums">返金 {refundCount}件</div>
+                      )}
+                    </div>
                   </div>
 
                   <Separator className="my-3" />
@@ -290,6 +297,12 @@ export default function JournalPage() {
                       <span className="text-muted-foreground">掛売</span>
                       <span className="tabular-nums font-medium">¥{creditTotal.toLocaleString()}</span>
                     </div>
+                    {refundCount > 0 && (
+                      <div className="flex justify-between py-1 px-3">
+                        <span className="text-destructive font-medium">返金</span>
+                        <span className="tabular-nums font-medium text-destructive">¥{refundTotal.toLocaleString()}</span>
+                      </div>
+                    )}
                   </div>
 
                   <Separator className="my-3" />
@@ -324,8 +337,11 @@ export default function JournalPage() {
                               No.{idx + 1}　{sale.time}
                             </span>
                             <div className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground">
-                                {sale.paymentMethod === 'cash' ? '現金' : '掛売'}
+                              <span className={`text-xs font-medium ${
+                                sale.paymentMethod === 'refund' ? 'text-destructive' :
+                                'text-muted-foreground'
+                              }`}>
+                                {sale.paymentMethod === 'cash' ? '現金' : sale.paymentMethod === 'refund' ? '返金' : '掛売'}
                               </span>
                               <Button
                                 variant="ghost" size="icon"
@@ -354,7 +370,9 @@ export default function JournalPage() {
                           </div>
                           {/* フッター */}
                           <div className="px-3 py-2 border-t">
-                            <div className="flex justify-between text-sm font-bold">
+                            <div className={`flex justify-between text-sm font-bold ${
+                              sale.paymentMethod === 'refund' ? 'text-destructive' : ''
+                            }`}>
                               <span>小計</span>
                               <span className="tabular-nums">¥{sGross.toLocaleString()}</span>
                             </div>
@@ -473,7 +491,7 @@ export default function JournalPage() {
               <Button variant="outline" className="gap-2" onClick={() =>
                 exportJournalCsv(
                   targetDate, sortedSales, items,
-                  deptSummary, grossTotal, taxTotal, cashTotal, creditTotal
+                  deptSummary, grossTotal, taxTotal, cashTotal, creditTotal, refundTotal
                 )
               }>
                 <Download className="h-4 w-4" />CSV出力

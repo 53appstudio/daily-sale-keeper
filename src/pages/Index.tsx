@@ -11,7 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, ShoppingCart, CreditCard, Banknote, CheckCircle2, Printer } from 'lucide-react';
+import { Trash2, ShoppingCart, CreditCard, Banknote, CheckCircle2, Printer, RotateCcw } from 'lucide-react';
 
 type Phase = 'input' | 'payment' | 'complete';
 
@@ -35,7 +35,7 @@ interface CompletedSale {
   grossTotal: number;
   netTotal: number;
   taxTotal: number;
-  paymentMethod: 'cash' | 'credit';
+  paymentMethod: 'cash' | 'credit' | 'refund';
   receivedAmount: number;
   changeAmount: number;
   date: string;
@@ -61,7 +61,7 @@ export default function RegisterPage() {
   const [inputMode, setInputMode] = useState<'price' | 'qty'>('price');
   const [taxRate, setTaxRate] = useState(10);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit' | 'refund'>('cash');
   const [receivedStr, setReceivedStr] = useState('');
   const [completedSale, setCompletedSale] = useState<CompletedSale | null>(null);
   const [showReceipt, setShowReceipt] = useState(false);
@@ -128,16 +128,21 @@ export default function RegisterPage() {
   const handleConfirmPayment = async () => {
     const now = new Date();
     const saleId = crypto.randomUUID();
-    const receivedAmount = paymentMethod === 'cash' ? received : grossTotal;
+    // 返金の場合は金額をマイナスに反転
+    const sign = paymentMethod === 'refund' ? -1 : 1;
+    const signedGross = grossTotal * sign;
+    const signedNet   = netTotal   * sign;
+    const signedTax   = taxTotal   * sign;
+    const receivedAmount = paymentMethod === 'cash' ? received : signedGross;
     const changeAmount   = paymentMethod === 'cash' ? Math.max(0, change) : 0;
 
     await db.sales.add({
       id: saleId,
       date: today,
       time: now.toTimeString().slice(0, 5),
-      netTotal,
-      taxTotal,
-      grossTotal,
+      netTotal:   signedNet,
+      taxTotal:   signedTax,
+      grossTotal: signedGross,
       taxMode,
       paymentMethod,
       receivedAmount,
@@ -145,6 +150,7 @@ export default function RegisterPage() {
       createdAt: now.toISOString(),
     });
 
+    // saleItems も返金時はマイナスで保存
     await db.saleItems.bulkAdd(cart.map(item => ({
       id: crypto.randomUUID(),
       saleId,
@@ -152,9 +158,9 @@ export default function RegisterPage() {
       departmentName: item.departmentName,
       unitPrice: item.unitPrice,
       quantity: item.quantity,
-      netAmount: item.netAmount,
-      taxAmount: item.taxAmount,
-      grossAmount: item.grossAmount,
+      netAmount:   item.netAmount   * sign,
+      taxAmount:   item.taxAmount   * sign,
+      grossAmount: item.grossAmount * sign,
       taxCategory: item.taxCategory,
       taxRate: item.taxRate,
       taxMode: item.taxMode,
@@ -162,9 +168,9 @@ export default function RegisterPage() {
 
     setCompletedSale({
       cart: [...cart],
-      grossTotal,
-      netTotal,
-      taxTotal,
+      grossTotal: signedGross,
+      netTotal:   signedNet,
+      taxTotal:   signedTax,
       paymentMethod,
       receivedAmount,
       changeAmount,
@@ -391,7 +397,7 @@ export default function RegisterPage() {
           </Card>
 
           {/* 支払方法 */}
-          <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="grid grid-cols-3 gap-3 mb-4">
             <Button variant={paymentMethod === 'cash' ? 'default' : 'outline'} className="h-16 text-base gap-2 flex-col"
               onClick={() => setPaymentMethod('cash')}>
               <Banknote className="h-5 w-5" />現　金
@@ -400,7 +406,30 @@ export default function RegisterPage() {
               onClick={() => setPaymentMethod('credit')}>
               <CreditCard className="h-5 w-5" />掛　売
             </Button>
+            <Button variant={paymentMethod === 'refund' ? 'destructive' : 'outline'} className="h-16 text-sm gap-1.5 flex-col"
+              onClick={() => setPaymentMethod('refund')}>
+              <RotateCcw className="h-5 w-5" />返　金
+            </Button>
           </div>
+
+          {/* 返金：説明表示 */}
+          {paymentMethod === 'refund' && (
+            <Card className="mb-4 border-destructive/50">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 text-destructive mb-1">
+                  <RotateCcw className="h-4 w-4" />
+                  <span className="font-bold text-sm">返金モード</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  カート内の金額をマイナスで日計に計上します。<br />
+                  「返計」ボタンで確定してください。
+                </p>
+                <div className="mt-2 text-center font-bold text-destructive text-xl tabular-nums">
+                  −¥{grossTotal.toLocaleString()}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* 現金：預かり金入力 */}
           {paymentMethod === 'cash' && (
@@ -433,9 +462,11 @@ export default function RegisterPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <Button variant="outline" className="h-12" onClick={() => setPhase('input')}>← 戻る</Button>
-            <Button className="h-12 text-base font-bold" onClick={handleConfirmPayment}
+            <Button
+              className={`h-12 text-base font-bold ${paymentMethod === 'refund' ? 'bg-destructive hover:bg-destructive/90 text-white' : ''}`}
+              onClick={handleConfirmPayment}
               disabled={paymentMethod === 'cash' && received < grossTotal}>
-              {paymentMethod === 'cash' ? '現　計' : '掛　計'}
+              {paymentMethod === 'cash' ? '現　計' : paymentMethod === 'refund' ? '返　計' : '掛　計'}
             </Button>
           </div>
         </main>
@@ -472,6 +503,14 @@ export default function RegisterPage() {
             )}
             {completedSale?.paymentMethod === 'credit' && (
               <Badge variant="secondary" className="text-base px-4 py-1 mb-4">掛売</Badge>
+            )}
+            {completedSale?.paymentMethod === 'refund' && (
+              <div className="text-center mb-4">
+                <Badge variant="destructive" className="text-base px-4 py-1 mb-1">返金</Badge>
+                <p className="text-2xl font-bold tabular-nums text-destructive">
+                  −¥{Math.abs(completedSale.grossTotal).toLocaleString()}
+                </p>
+              </div>
             )}
             <div className="w-full space-y-3 mt-2">
               <Button variant="outline" className="w-full h-12 gap-2" onClick={() => setShowReceipt(true)}>

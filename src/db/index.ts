@@ -30,11 +30,11 @@ export interface Sale {
   id: string;
   date: string;
   time: string;
-  netTotal: number;       // 税抜合計
-  taxTotal: number;       // 消費税合計
-  grossTotal: number;     // 税込合計（請求額）
+  netTotal: number;       // 税抜合計（返金時は負値）
+  taxTotal: number;       // 消費税合計（返金時は負値）
+  grossTotal: number;     // 税込合計（返金時は負値）
   taxMode: TaxMode;       // この会計時点のモード
-  paymentMethod: 'cash' | 'credit';
+  paymentMethod: 'cash' | 'credit' | 'refund';  // 返金追加
   receivedAmount: number;
   changeAmount: number;
   createdAt: string;
