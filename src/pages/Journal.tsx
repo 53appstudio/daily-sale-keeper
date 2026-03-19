@@ -23,16 +23,25 @@ export default function JournalPage() {
     [targetDate]
   ) ?? [];
 
-  const allSaleItems = useLiveQuery(() => db.saleItems.toArray(), []) ?? [];
-
-  // 対象日の明細
+  // 対象日の明細のみ取得（全件取得しない）
   const saleIds = new Set(sales.map(s => s.id));
-  const items = allSaleItems.filter(i => saleIds.has(i.saleId));
+  const items = useLiveQuery(
+    async () => {
+      if (saleIds.size === 0) return [];
+      const all = await db.saleItems.toArray();
+      return all.filter(i => saleIds.has(i.saleId));
+    },
+    [targetDate, sales.length]
+  ) ?? [];
 
-  // 編集モーダル用の明細
-  const editingItems = editingSale
-    ? allSaleItems.filter(i => i.saleId === editingSale.id)
-    : [];
+  // 編集モーダル用の明細（クリックした sale の id で取得）
+  const editingItems = useLiveQuery(
+    async () => {
+      if (!editingSale?.id) return [];
+      return db.saleItems.where('saleId').equals(editingSale.id).toArray();
+    },
+    [editingSale?.id]
+  ) ?? [];
 
   // --- 集計（grossTotal/taxTotal フィールドを使用）---
   const customerCount = sales.length;

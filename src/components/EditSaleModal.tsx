@@ -56,16 +56,18 @@ export function EditSaleModal({ sale, items, open, onClose }: EditSaleModalProps
       isNew: false,
       departmentId: i.departmentId,
       departmentName: i.departmentName,
-      unitPrice: i.unitPrice,
-      quantity: i.quantity,
-      netAmount: i.netAmount,
-      taxAmount: i.taxAmount,
-      grossAmount: i.grossAmount,
-      taxCategory: i.taxCategory,
-      taxRate: i.taxRate,
-      taxMode: i.taxMode,
+      unitPrice: i.unitPrice ?? 0,
+      quantity: i.quantity ?? 1,
+      netAmount: i.netAmount ?? 0,
+      taxAmount: i.taxAmount ?? 0,
+      // 旧データ互換：grossAmount がない場合は unitPrice*quantity で代替
+      grossAmount: i.grossAmount ?? (i.unitPrice ?? 0) * (i.quantity ?? 1),
+      taxCategory: i.taxCategory ?? 'standard',
+      taxRate: i.taxRate ?? 0,
+      // 旧データ互換：taxMode がない場合は sale の taxMode、それもなければ 'inclusive'
+      taxMode: (i.taxMode ?? sale.taxMode ?? 'inclusive') as TaxMode,
     })));
-    setPaymentMethod(sale.paymentMethod);
+    setPaymentMethod(sale.paymentMethod ?? 'cash');
   }, [sale, items]);
 
   // --- 集計 ---
@@ -78,8 +80,9 @@ export function EditSaleModal({ sale, items, open, onClose }: EditSaleModalProps
     const price = parseInt(value.replace(/[^0-9]/g, ''), 10) || 0;
     setEditItems(prev => prev.map((item, i) => {
       if (i !== idx) return item;
-      const result = calcLineTotal(price, item.quantity, item.taxRate, item.taxMode);
-      return { ...item, unitPrice: price, ...result };
+      const taxMode = (item.taxMode ?? 'inclusive') as TaxMode;
+      const result = calcLineTotal(price, item.quantity, item.taxRate ?? 0, taxMode);
+      return { ...item, unitPrice: price, taxMode, ...result };
     }));
   };
 
@@ -88,8 +91,9 @@ export function EditSaleModal({ sale, items, open, onClose }: EditSaleModalProps
     setEditItems(prev => prev.map((item, i) => {
       if (i !== idx) return item;
       const qty = Math.max(1, item.quantity + delta);
-      const result = calcLineTotal(item.unitPrice, qty, item.taxRate, item.taxMode);
-      return { ...item, quantity: qty, ...result };
+      const taxMode = (item.taxMode ?? 'inclusive') as TaxMode;
+      const result = calcLineTotal(item.unitPrice, qty, item.taxRate ?? 0, taxMode);
+      return { ...item, quantity: qty, taxMode, ...result };
     }));
   };
 
@@ -169,7 +173,11 @@ export function EditSaleModal({ sale, items, open, onClose }: EditSaleModalProps
     }
   };
 
+  // sale が null の場合は何もレンダリングしない（フックの後で行う）
   if (!sale) return null;
+
+  // taxMode のフォールバック（旧データ互換）
+  const saleTaxMode: TaxMode = (sale.taxMode ?? 'inclusive') as TaxMode;
 
   return (
     <>
@@ -262,7 +270,7 @@ export function EditSaleModal({ sale, items, open, onClose }: EditSaleModalProps
 
           {/* 合計 */}
           <div className="space-y-1 text-sm">
-            {sale.taxMode === 'exclusive' && (
+            {saleTaxMode === 'exclusive' && (
               <>
                 <div className="flex justify-between text-muted-foreground">
                   <span>税抜合計</span>
@@ -278,7 +286,7 @@ export function EditSaleModal({ sale, items, open, onClose }: EditSaleModalProps
               <span>請求合計（税込）</span>
               <span className="tabular-nums">¥{grossTotal.toLocaleString()}</span>
             </div>
-            {sale.taxMode === 'inclusive' && taxTotal > 0 && (
+            {saleTaxMode === 'inclusive' && taxTotal > 0 && (
               <div className="text-xs text-muted-foreground text-right tabular-nums">
                 （うち消費税 ¥{taxTotal.toLocaleString()}）
               </div>
