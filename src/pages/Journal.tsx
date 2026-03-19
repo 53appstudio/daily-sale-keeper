@@ -21,11 +21,20 @@ function formatDateTime(iso: string) {
   return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-// 日計印刷：body に journal-print-mode を付けてから印刷
-function printJournal() {
-  document.body.classList.add('journal-print-mode');
-  window.print();
-  document.body.classList.remove('journal-print-mode');
+// 日計印刷用コールバック（外から呼べるようにexportしない・stateセッターを受け取る）
+function makePrintJournal(setShowAuditLog: (v: boolean) => void) {
+  return () => {
+    // 修正履歴を展開してから印刷（折りたたみ中でも印刷に含める）
+    setShowAuditLog(true);
+    document.body.classList.add('journal-print-mode');
+    // setStateは非同期なので、次のフレームで印刷
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.print();
+        document.body.classList.remove('journal-print-mode');
+      });
+    });
+  };
 }
 
 export default function JournalPage() {
@@ -291,8 +300,8 @@ export default function JournalPage() {
                       修正・削除履歴 ({parsedLogs.length}件)
                     </div>
 
-                    {/* ログ一覧：画面では折りたたみ制御、印刷では常に展開 */}
-                    <div className={`mt-3 space-y-3 ${showAuditLog ? '' : 'no-print-collapse'}`}>
+                    {/* ログ一覧：showAuditLog が true の時のみ表示（印刷前に強制 true にする） */}
+                    {showAuditLog && <div className="mt-3 space-y-3">
                       {parsedLogs.map(log => {
                         const beforeSale: Sale | null = log.before?.sale ?? null;
                         const beforeItems: SaleItem[] = log.before?.items ?? [];
@@ -353,7 +362,7 @@ export default function JournalPage() {
                           </div>
                         );
                       })}
-                    </div>
+                    </div>}
                   </CardContent>
                 </Card>
               )}
@@ -361,7 +370,7 @@ export default function JournalPage() {
             </div>{/* /journal-print-area */}
 
             {/* 印刷ボタン */}
-            <Button variant="outline" className="w-full gap-2 mb-3 no-print" onClick={printJournal}>
+            <Button variant="outline" className="w-full gap-2 mb-3 no-print" onClick={makePrintJournal(setShowAuditLog)}>
               <Printer className="h-4 w-4" />日計＋修正履歴を印刷
             </Button>
           </>
