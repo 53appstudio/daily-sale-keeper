@@ -53,12 +53,26 @@ export interface Setting {
   value: string;
 }
 
+// 修正・削除履歴ログ
+export interface AuditLog {
+  id: string;
+  action: 'edit' | 'delete';   // 'edit'=修正, 'delete'=削除
+  saleId: string;               // 対象会計ID
+  saleDate: string;             // 対象会計の日付
+  saleTime: string;             // 対象会計の時刻
+  beforeSnapshot: string;       // 修正前のJSON（Sale + SaleItems）
+  afterSnapshot: string;        // 修正後のJSON（削除時は空文字）
+  operator: string;             // 操作者（将来拡張用、現在は'システム'）
+  createdAt: string;            // 操作日時
+}
+
 class SimpleRegiDB extends Dexie {
   departments!: Table<Department>;
   saleItems!: Table<SaleItem>;
   sales!: Table<Sale>;
   taxRates!: Table<TaxRate>;
   settings!: Table<Setting>;
+  auditLogs!: Table<AuditLog>;
 
   constructor() {
     super('SimpleRegiDB');
@@ -70,13 +84,22 @@ class SimpleRegiDB extends Dexie {
       taxRates: 'id, category, effectiveFrom',
       settings: 'key',
     });
-    // version 3 → taxMode フィールド追加（既存データはそのまま、新フィールドはundefinedになるだけ）
+    // version 3 → taxMode フィールド追加
     this.version(3).stores({
       departments: 'id, name, sortOrder',
       saleItems: 'id, saleId, departmentId',
       sales: 'id, date, createdAt',
       taxRates: 'id, category, effectiveFrom',
       settings: 'key',
+    });
+    // version 4 → auditLogs テーブル追加
+    this.version(4).stores({
+      departments: 'id, name, sortOrder',
+      saleItems: 'id, saleId, departmentId',
+      sales: 'id, date, createdAt',
+      taxRates: 'id, category, effectiveFrom',
+      settings: 'key',
+      auditLogs: 'id, saleId, saleDate, createdAt',
     });
   }
 }

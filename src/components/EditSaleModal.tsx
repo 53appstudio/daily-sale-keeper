@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { db, type Sale, type SaleItem } from '@/db';
+import { db, type Sale, type SaleItem, type AuditLog } from '@/db';
 import { calcLineTotal, type TaxMode } from '@/lib/tax';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -127,6 +127,20 @@ export function EditSaleModal({ sale, items, open, onClose }: EditSaleModalProps
   const handleDeleteSale = async () => {
     if (!sale?.id) return;
     setSaving(true);
+    // 削除前スナップショットを保存
+    const beforeItems = await db.saleItems.where('saleId').equals(sale.id).toArray();
+    const log: AuditLog = {
+      id: crypto.randomUUID(),
+      action: 'delete',
+      saleId: sale.id,
+      saleDate: sale.date,
+      saleTime: sale.time,
+      beforeSnapshot: JSON.stringify({ sale, items: beforeItems }),
+      afterSnapshot: '',
+      operator: 'システム',
+      createdAt: new Date().toISOString(),
+    };
+    await db.auditLogs.add(log);
     await db.saleItems.where('saleId').equals(sale.id).delete();
     await db.sales.delete(sale.id);
     setSaving(false);
@@ -139,6 +153,28 @@ export function EditSaleModal({ sale, items, open, onClose }: EditSaleModalProps
     if (!sale) return;
     setSaving(true);
     try {
+      // 修正前スナップショットを保存
+      const beforeItems = await db.saleItems.where('saleId').equals(sale.id).toArray();
+      const afterSale = {
+        ...sale,
+        netTotal,
+        taxTotal,
+        grossTotal,
+        paymentMethod,
+      };
+      const log: AuditLog = {
+        id: crypto.randomUUID(),
+        action: 'edit',
+        saleId: sale.id,
+        saleDate: sale.date,
+        saleTime: sale.time,
+        beforeSnapshot: JSON.stringify({ sale, items: beforeItems }),
+        afterSnapshot: JSON.stringify({ sale: afterSale, items: editItems }),
+        operator: 'システム',
+        createdAt: new Date().toISOString(),
+      };
+      await db.auditLogs.add(log);
+
       // sale を更新
       await db.sales.update(sale.id, {
         netTotal,
