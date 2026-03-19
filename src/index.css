@@ -73,19 +73,31 @@
 
 /* Print styles */
 @media print {
+  /* 画面UI をすべて非表示にしてレシートだけ印刷 */
   body * {
     visibility: hidden;
   }
-  .print-area, .print-area * {
+  .receipt-area,
+  .receipt-area * {
     visibility: visible;
   }
-  .print-area {
-    position: absolute;
+  .receipt-area {
+    position: fixed;
     left: 0;
     top: 0;
-    width: 100%;
+    width: 80mm; /* レシート用紙幅 */
+    margin: 0;
+    padding: 4mm;
+    font-size: 11pt;
+    color: #000 !important;
+    background: #fff !important;
   }
   .no-print {
     display: none !important;
+  }
+  /* ページ余白をなくす */
+  @page {
+    margin: 0;
+    size: 80mm auto;
   }
 }

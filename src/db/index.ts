@@ -1,4 +1,5 @@
 import Dexie, { type Table } from 'dexie';
+import type { TaxMode } from '@/lib/tax';
 
 export interface Department {
   id: string;
@@ -11,28 +12,31 @@ export interface Department {
 // 1明細行（商品1点）
 export interface SaleItem {
   id: string;
-  saleId: string;       // どの会計に属するか
+  saleId: string;
   departmentId: string;
   departmentName: string;
-  unitPrice: number;    // 単価（税込）
-  quantity: number;     // 個数
-  amount: number;       // 小計 = unitPrice × quantity
+  unitPrice: number;      // 入力単価（内税モード=税込単価、外税モード=税抜単価）
+  quantity: number;
+  netAmount: number;      // 税抜小計
+  taxAmount: number;      // 消費税額
+  grossAmount: number;    // 税込小計（請求額）
   taxCategory: 'standard' | 'reduced' | 'exempt' | 'other';
   taxRate: number;
-  taxExcludedAmount: number;
-  taxAmount: number;
+  taxMode: TaxMode;       // 'inclusive'=内税 | 'exclusive'=外税
 }
 
 // 1顧客=1会計
 export interface Sale {
   id: string;
-  date: string;         // YYYY-MM-DD
-  time: string;         // HH:mm
-  subtotal: number;     // 合計（税込）
-  totalTax: number;     // 消費税合計
+  date: string;
+  time: string;
+  netTotal: number;       // 税抜合計
+  taxTotal: number;       // 消費税合計
+  grossTotal: number;     // 税込合計（請求額）
+  taxMode: TaxMode;       // この会計時点のモード
   paymentMethod: 'cash' | 'credit';
-  receivedAmount: number;  // 預かり金（現金時）
-  changeAmount: number;    // おつり（現金時）
+  receivedAmount: number;
+  changeAmount: number;
   createdAt: string;
 }
 
@@ -58,7 +62,16 @@ class SimpleRegiDB extends Dexie {
 
   constructor() {
     super('SimpleRegiDB');
+    // version 2 → 既存スキーマ（後方互換のため残す）
     this.version(2).stores({
+      departments: 'id, name, sortOrder',
+      saleItems: 'id, saleId, departmentId',
+      sales: 'id, date, createdAt',
+      taxRates: 'id, category, effectiveFrom',
+      settings: 'key',
+    });
+    // version 3 → taxMode フィールド追加（既存データはそのまま、新フィールドはundefinedになるだけ）
+    this.version(3).stores({
       departments: 'id, name, sortOrder',
       saleItems: 'id, saleId, departmentId',
       sales: 'id, date, createdAt',
