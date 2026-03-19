@@ -101,9 +101,7 @@
     visibility: visible;
   }
   .journal-print-area {
-    position: fixed;
-    left: 0;
-    top: 0;
+    position: static;
     width: 100%;
     margin: 0;
     padding: 8mm 10mm;
@@ -111,6 +109,17 @@
     color: #000 !important;
     background: #fff !important;
     overflow: visible;
+  }
+
+  /* 折りたたみ中のログも印刷時は展開 */
+  .journal-print-area .no-print-collapse {
+    display: block !important;
+    margin-top: 0.75rem;
+  }
+
+  /* 折りたたみトグルボタンは印刷時非表示 */
+  .journal-print-area .no-print {
+    display: none !important;
   }
 
   .no-print {
@@ -124,14 +133,9 @@
   size: 80mm auto;
 }
 
-/* 日計印刷時のページ設定（journal-print-mode クラスをbodyに付与時） */
-body.journal-print-mode {
-  /* JSで付与してから window.print() を呼ぶ */
-}
+/* 日計印刷時のページ設定 */
 @media print {
   body.journal-print-mode {
-    /* @page サイズ上書きはサポート外ブラウザ多いため、
-       Androidブラウザ対応：日計エリアを full-width で表示 */
     page-break-inside: avoid;
   }
   body.journal-print-mode .journal-print-area {

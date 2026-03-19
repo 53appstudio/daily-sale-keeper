@@ -267,33 +267,32 @@ export default function JournalPage() {
                 </CardContent>
               </Card>
 
-            </div>{/* /journal-print-area */}
+              {/* 修正・削除履歴（印刷エリア内に配置） */}
+              {parsedLogs.length > 0 && (
+                <Card className="mb-4">
+                  <CardContent className="p-4">
+                    {/* 画面表示時：折りたたみヘッダー */}
+                    <button
+                      className="flex items-center justify-between w-full no-print"
+                      onClick={() => setShowAuditLog(v => !v)}
+                    >
+                      <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                        <History className="h-4 w-4" />
+                        修正・削除履歴 ({parsedLogs.length}件)
+                      </div>
+                      {showAuditLog
+                        ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                        : <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      }
+                    </button>
 
-            {/* 印刷ボタン */}
-            <Button variant="outline" className="w-full gap-2 mb-3 no-print" onClick={printJournal}>
-              <Printer className="h-4 w-4" />日計を印刷
-            </Button>
-
-            {/* 修正履歴 */}
-            {parsedLogs.length > 0 && (
-              <Card className="mb-4 no-print">
-                <CardContent className="p-4">
-                  <button
-                    className="flex items-center justify-between w-full"
-                    onClick={() => setShowAuditLog(v => !v)}
-                  >
-                    <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                      <History className="h-4 w-4" />
+                    {/* 印刷時専用ヘッダー（常に表示） */}
+                    <div className="hidden print-show text-sm font-semibold text-muted-foreground mb-2" style={{display:'none'}}>
                       修正・削除履歴 ({parsedLogs.length}件)
                     </div>
-                    {showAuditLog
-                      ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                      : <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                    }
-                  </button>
 
-                  {showAuditLog && (
-                    <div className="mt-3 space-y-3">
+                    {/* ログ一覧：画面では折りたたみ制御、印刷では常に展開 */}
+                    <div className={`mt-3 space-y-3 ${showAuditLog ? '' : 'no-print-collapse'}`}>
                       {parsedLogs.map(log => {
                         const beforeSale: Sale | null = log.before?.sale ?? null;
                         const beforeItems: SaleItem[] = log.before?.items ?? [];
@@ -316,8 +315,8 @@ export default function JournalPage() {
 
                             {/* 修正前 */}
                             {beforeSale && (
-                              <div className="px-3 py-2 bg-red-50/50 border-b">
-                                <div className="font-semibold text-red-700 mb-1">修正前</div>
+                              <div className="px-3 py-2 border-b" style={{background:'#fff5f5'}}>
+                                <div className="font-semibold mb-1" style={{color:'#b91c1c'}}>修正前</div>
                                 <div className="space-y-0.5 text-muted-foreground">
                                   {beforeItems.map((item, i) => (
                                     <div key={i} className="flex justify-between">
@@ -325,7 +324,7 @@ export default function JournalPage() {
                                       <span className="tabular-nums">¥{(item.unitPrice ?? 0).toLocaleString()} × {item.quantity ?? 1} = ¥{(item.grossAmount ?? 0).toLocaleString()}</span>
                                     </div>
                                   ))}
-                                  <div className="flex justify-between font-semibold border-t pt-1 text-red-700">
+                                  <div className="flex justify-between font-semibold border-t pt-1" style={{color:'#b91c1c'}}>
                                     <span>合計 ({beforeSale.paymentMethod === 'cash' ? '現金' : '掛売'})</span>
                                     <span className="tabular-nums">¥{(beforeSale.grossTotal ?? 0).toLocaleString()}</span>
                                   </div>
@@ -335,8 +334,8 @@ export default function JournalPage() {
 
                             {/* 修正後（deleteは表示しない） */}
                             {log.action === 'edit' && afterSale && (
-                              <div className="px-3 py-2 bg-green-50/50">
-                                <div className="font-semibold text-green-700 mb-1">修正後</div>
+                              <div className="px-3 py-2" style={{background:'#f0fdf4'}}>
+                                <div className="font-semibold mb-1" style={{color:'#15803d'}}>修正後</div>
                                 <div className="space-y-0.5 text-muted-foreground">
                                   {afterItems.map((item, i) => (
                                     <div key={i} className="flex justify-between">
@@ -344,7 +343,7 @@ export default function JournalPage() {
                                       <span className="tabular-nums">¥{(item.unitPrice ?? 0).toLocaleString()} × {(item.quantity ?? 1)} = ¥{(item.grossAmount ?? 0).toLocaleString()}</span>
                                     </div>
                                   ))}
-                                  <div className="flex justify-between font-semibold border-t pt-1 text-green-700">
+                                  <div className="flex justify-between font-semibold border-t pt-1" style={{color:'#15803d'}}>
                                     <span>合計 ({afterSale.paymentMethod === 'cash' ? '現金' : '掛売'})</span>
                                     <span className="tabular-nums">¥{(afterSale.grossTotal ?? 0).toLocaleString()}</span>
                                   </div>
@@ -355,10 +354,16 @@ export default function JournalPage() {
                         );
                       })}
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
+                  </CardContent>
+                </Card>
+              )}
+
+            </div>{/* /journal-print-area */}
+
+            {/* 印刷ボタン */}
+            <Button variant="outline" className="w-full gap-2 mb-3 no-print" onClick={printJournal}>
+              <Printer className="h-4 w-4" />日計＋修正履歴を印刷
+            </Button>
           </>
         )}
       </main>
