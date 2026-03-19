@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-  ChevronLeft, ChevronRight, Printer, Pencil, History, ChevronDown, ChevronUp,
+  ChevronLeft, ChevronRight, Printer, Pencil, History, ChevronDown, ChevronUp, Download,
 } from 'lucide-react';
 
 function formatDate(dateStr: string) {
@@ -19,6 +19,102 @@ function formatDateTime(iso: string) {
   const d = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// --- CSV出力 ---
+function escapeCsv(v: string | number): string {
+  const s = String(v ?? '');
+  // カンマ・改行・ダブルクォートを含む場合はダブルクォートで囲む
+  if (s.includes(',') || s.includes('\n') || s.includes('"')) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
+function rowToCsv(cols: (string | number)[]): string {
+  return cols.map(escapeCsv).join(',');
+}
+
+function exportJournalCsv(
+  targetDate: string,
+  sales: import('@/db').Sale[],
+  items: import('@/db').SaleItem[],
+  deptSummary: { name: string; grossAmount: number; taxAmount: number }[],
+  grossTotal: number,
+  taxTotal: number,
+  cashTotal: number,
+  creditTotal: number,
+) {
+  const rows: string[] = [];
+  const BOM = '\uFEFF'; // Excel で文字化けしないよう BOM 付き UTF-8
+
+  // ========== セクション1: 日計サマリー ==========
+  rows.push(rowToCsv(['【日計サマリー】', targetDate]));
+  rows.push(rowToCsv(['顧客数', sales.length, '名']));
+  rows.push('');
+  rows.push(rowToCsv(['■ 部門別売上']));
+  rows.push(rowToCsv(['部門名', '税込売上', '消費税']));
+  for (const d of deptSummary) {
+    rows.push(rowToCsv([d.name, d.grossAmount, d.taxAmount]));
+  }
+  rows.push('');
+  rows.push(rowToCsv(['■ 支払方法別']));
+  rows.push(rowToCsv(['現金', cashTotal]));
+  rows.push(rowToCsv(['掛売', creditTotal]));
+  rows.push('');
+  rows.push(rowToCsv(['■ 総計']));
+  rows.push(rowToCsv(['税込合計', grossTotal]));
+  rows.push(rowToCsv(['消費税', taxTotal]));
+  rows.push('');
+
+  // ========== セクション2: 顧客別明細 ==========
+  rows.push(rowToCsv(['【顧客別明細】']));
+  rows.push(rowToCsv([
+    'No', '日付', '時刻', '支払方法',
+    '部門名', '単価', '個数', '税抜小計', '消費税', '税込小計',
+    '会計税込合計', 'お預かり', 'おつり',
+  ]));
+
+  const sortedSales = [...sales].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  sortedSales.forEach((sale, idx) => {
+    const sItems = items.filter(i => i.saleId === sale.id);
+    const payLabel = sale.paymentMethod === 'cash' ? '現金' : '掛売';
+    if (sItems.length === 0) {
+      // 明細なし会計（念のため）
+      rows.push(rowToCsv([
+        idx + 1, sale.date, sale.time, payLabel,
+        '', '', '', '', '', '',
+        sale.grossTotal ?? 0, sale.receivedAmount ?? 0, sale.changeAmount ?? 0,
+      ]));
+    } else {
+      sItems.forEach((item, itemIdx) => {
+        rows.push(rowToCsv([
+          itemIdx === 0 ? idx + 1 : '',   // No は1行目のみ
+          itemIdx === 0 ? sale.date : '',
+          itemIdx === 0 ? sale.time : '',
+          itemIdx === 0 ? payLabel : '',
+          item.departmentName,
+          item.unitPrice ?? 0,
+          item.quantity ?? 1,
+          item.netAmount ?? 0,
+          item.taxAmount ?? 0,
+          item.grossAmount ?? (item.unitPrice ?? 0) * (item.quantity ?? 1),
+          itemIdx === 0 ? (sale.grossTotal ?? 0) : '',
+          itemIdx === 0 ? (sale.receivedAmount ?? 0) : '',
+          itemIdx === 0 ? (sale.changeAmount ?? 0) : '',
+        ]));
+      });
+    }
+  });
+
+  // ダウンロード
+  const csvContent = BOM + rows.join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `日計_${targetDate}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 // 日計印刷用コールバック（外から呼べるようにexportしない・stateセッターを受け取る）
@@ -369,10 +465,20 @@ export default function JournalPage() {
 
             </div>{/* /journal-print-area */}
 
-            {/* 印刷ボタン */}
-            <Button variant="outline" className="w-full gap-2 mb-3 no-print" onClick={makePrintJournal(setShowAuditLog)}>
-              <Printer className="h-4 w-4" />日計＋修正履歴を印刷
-            </Button>
+            {/* ボタン行：印刷 ＋ CSV出力 */}
+            <div className="grid grid-cols-2 gap-2 mb-3 no-print">
+              <Button variant="outline" className="gap-2" onClick={makePrintJournal(setShowAuditLog)}>
+                <Printer className="h-4 w-4" />印刷
+              </Button>
+              <Button variant="outline" className="gap-2" onClick={() =>
+                exportJournalCsv(
+                  targetDate, sortedSales, items,
+                  deptSummary, grossTotal, taxTotal, cashTotal, creditTotal
+                )
+              }>
+                <Download className="h-4 w-4" />CSV出力
+              </Button>
+            </div>
           </>
         )}
       </main>
