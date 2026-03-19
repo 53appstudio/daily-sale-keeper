@@ -1,202 +1,202 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { format } from 'date-fns';
-import { ja } from 'date-fns/locale';
 import { db } from '@/db';
-import { formatTaxLabel, type TaxCategory } from '@/lib/tax';
 import { AppHeader } from '@/components/AppHeader';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, Printer, Download } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { ChevronLeft, ChevronRight, Printer } from 'lucide-react';
+
+function formatDate(dateStr: string) {
+  const d = new Date(dateStr);
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+}
 
 export default function JournalPage() {
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const dateStr = format(selectedDate, 'yyyy-MM-dd');
+  const today = new Date().toISOString().split('T')[0];
+  const [targetDate, setTargetDate] = useState(today);
 
-  const storeName = useLiveQuery(
-    () => db.settings.get('storeName').then((s) => s?.value ?? ''),
-    []
-  ) ?? '';
-
-  const transactions = useLiveQuery(
-    () => db.transactions.where('date').equals(dateStr).toArray(),
-    [dateStr]
+  const sales = useLiveQuery(
+    () => db.sales.where('date').equals(targetDate).toArray(),
+    [targetDate]
   ) ?? [];
 
-  const departments = useLiveQuery(() => db.departments.toArray()) ?? [];
+  const saleItems = useLiveQuery(
+    () => db.saleItems.toArray(),
+    []
+  ) ?? [];
 
-  const sorted = [...transactions].sort((a, b) => a.time.localeCompare(b.time));
+  // 対象日の明細だけ
+  const saleIds = new Set(sales.map(s => s.id));
+  const items = saleItems.filter(i => saleIds.has(i.saleId));
 
-  // Department summary
-  const deptSummary = new Map<string, { count: number; total: number }>();
-  transactions.forEach((tx) => {
-    const cur = deptSummary.get(tx.departmentName) ?? { count: 0, total: 0 };
-    deptSummary.set(tx.departmentName, { count: cur.count + 1, total: cur.total + tx.amount });
-  });
+  // 集計
+  const customerCount = sales.length;
+  const totalAmount = sales.reduce((s, x) => s + x.subtotal, 0);
+  const totalTax = sales.reduce((s, x) => s + x.totalTax, 0);
+  const cashTotal = sales.filter(x => x.paymentMethod === 'cash').reduce((s, x) => s + x.subtotal, 0);
+  const creditTotal = sales.filter(x => x.paymentMethod === 'credit').reduce((s, x) => s + x.subtotal, 0);
 
-  // Payment method summary
-  const cashTotal = transactions.filter((t) => t.paymentMethod === 'cash').reduce((s, t) => s + t.amount, 0);
-  const creditTotal = transactions.filter((t) => t.paymentMethod === 'credit').reduce((s, t) => s + t.amount, 0);
+  // 部門別集計
+  const deptMap = new Map<string, { name: string; amount: number; taxAmount: number }>();
+  for (const item of items) {
+    const existing = deptMap.get(item.departmentId);
+    if (existing) {
+      existing.amount += item.amount;
+      existing.taxAmount += item.taxAmount;
+    } else {
+      deptMap.set(item.departmentId, {
+        name: item.departmentName,
+        amount: item.amount,
+        taxAmount: item.taxAmount,
+      });
+    }
+  }
+  const deptSummary = Array.from(deptMap.values()).sort((a, b) => b.amount - a.amount);
 
-  // Tax summary
-  const taxSummary = new Map<string, { amount: number; tax: number }>();
-  transactions.forEach((tx) => {
-    const key = tx.taxCategory;
-    const cur = taxSummary.get(key) ?? { amount: 0, tax: 0 };
-    taxSummary.set(key, { amount: cur.amount + tx.amount, tax: cur.tax + tx.taxAmount });
-  });
+  // 日付移動
+  const moveDate = (days: number) => {
+    const d = new Date(targetDate);
+    d.setDate(d.getDate() + days);
+    setTargetDate(d.toISOString().split('T')[0]);
+  };
 
-  const totalAmount = transactions.reduce((s, t) => s + t.amount, 0);
-  const totalTax = transactions.reduce((s, t) => s + t.taxAmount, 0);
-
+  // 印刷
   const handlePrint = () => window.print();
-
-  const handleCsvExport = () => {
-    const header = '日付,時刻,部門,金額(税込),税区分,税率,税抜金額,消費税額,支払方法,編集済み';
-    const rows = sorted.map((tx) =>
-      [
-        tx.date,
-        tx.time,
-        tx.departmentName,
-        tx.amount,
-        tx.taxCategory === 'standard' ? '標準税率' : tx.taxCategory === 'reduced' ? '軽減税率' : tx.taxCategory === 'other' ? 'その他' : '非課税',
-        tx.taxRate,
-        tx.taxExcludedAmount,
-        tx.taxAmount,
-        tx.paymentMethod === 'cash' ? '現金' : '掛売',
-        tx.isEdited ? '○' : '',
-      ].join(',')
-    );
-    const csv = '\uFEFF' + [header, ...rows].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `journal_${dateStr}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const taxCategoryLabel = (cat: string) => {
-    const labels: Record<string, string> = { standard: '標準税率', reduced: '軽減税率', exempt: '非課税', other: 'その他' };
-    return labels[cat] ?? cat;
-  };
 
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
-      <main className="container px-4 py-6">
-        <div className="flex items-center gap-4 mb-6 no-print">
-          <h2 className="text-xl font-bold">日計ジャーナル</h2>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="h-10 gap-2">
-                <CalendarIcon className="h-4 w-4" />
-                {format(selectedDate, 'yyyy-MM-dd')}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(d) => d && setSelectedDate(d)}
-                className="p-3 pointer-events-auto"
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
+      <main className="container px-3 py-4 max-w-lg mx-auto">
 
-        <Card className="print-area max-w-2xl mx-auto shadow-md">
-          <CardContent className="p-6 space-y-6">
-            <div className="text-center">
-              <p className="text-lg font-bold">{storeName || '店舗名未設定'} 日計ジャーナル</p>
-              <p className="text-sm text-muted-foreground">
-                {format(selectedDate, 'yyyy年M月d日（E）', { locale: ja })}
-              </p>
-            </div>
-
-            {transactions.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">この日の取引データはありません</p>
-            ) : (
-              <>
-                {/* Department summary */}
-                <div>
-                  <h3 className="font-semibold mb-2">■ 部門別集計</h3>
-                  <div className="space-y-1 tabular-nums text-sm">
-                    {Array.from(deptSummary.entries()).map(([name, data]) => (
-                      <div key={name} className="flex justify-between">
-                        <span>{name}</span>
-                        <span>{data.count}件　¥{data.total.toLocaleString()}</span>
-                      </div>
-                    ))}
-                    <Separator />
-                    <div className="flex justify-between font-semibold">
-                      <span>合計</span>
-                      <span>{transactions.length}件　¥{totalAmount.toLocaleString()}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Payment summary */}
-                <div>
-                  <h3 className="font-semibold mb-2">■ 支払方法別</h3>
-                  <div className="space-y-1 tabular-nums text-sm">
-                    <div className="flex justify-between"><span>現金</span><span>¥{cashTotal.toLocaleString()}</span></div>
-                    <div className="flex justify-between"><span>掛売</span><span>¥{creditTotal.toLocaleString()}</span></div>
-                  </div>
-                </div>
-
-                {/* Tax summary */}
-                <div>
-                  <h3 className="font-semibold mb-2">■ 消費税集計</h3>
-                  <div className="space-y-1 tabular-nums text-sm">
-                    {Array.from(taxSummary.entries()).map(([cat, data]) => (
-                      <div key={cat} className="flex justify-between">
-                        <span>{taxCategoryLabel(cat)}</span>
-                        <span>¥{data.amount.toLocaleString()} (税¥{data.tax.toLocaleString()})</span>
-                      </div>
-                    ))}
-                    <Separator />
-                    <div className="flex justify-between font-semibold">
-                      <span>税込総合計</span><span>¥{totalAmount.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>うち消費税合計</span><span>¥{totalTax.toLocaleString()}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Transaction details */}
-                <div>
-                  <h3 className="font-semibold mb-2">■ 取引明細</h3>
-                  <div className="space-y-1 tabular-nums text-sm">
-                    {sorted.map((tx) => (
-                      <div key={tx.id} className="flex justify-between">
-                        <span>
-                          {tx.time} {tx.departmentName} ¥{tx.amount.toLocaleString()} {formatTaxLabel(tx.taxCategory, tx.taxRate)} {tx.paymentMethod === 'cash' ? '現金' : '掛売'}
-                          {tx.isEdited && ' ✏'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </>
+        {/* 日付ナビ */}
+        <div className="flex items-center justify-between mb-4">
+          <Button variant="outline" size="icon" onClick={() => moveDate(-1)}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="text-center">
+            <div className="text-lg font-bold">{formatDate(targetDate)}</div>
+            {targetDate === today && (
+              <div className="text-xs text-primary font-medium">本日</div>
             )}
-          </CardContent>
-        </Card>
-
-        <div className="flex justify-center gap-4 mt-6 no-print">
-          <Button variant="outline" className="gap-2" onClick={handlePrint}>
-            <Printer className="h-4 w-4" /> 印刷
-          </Button>
-          <Button variant="outline" className="gap-2" onClick={handleCsvExport} disabled={transactions.length === 0}>
-            <Download className="h-4 w-4" /> CSV出力
+          </div>
+          <Button variant="outline" size="icon" onClick={() => moveDate(1)} disabled={targetDate >= today}>
+            <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
+
+        {customerCount === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center text-muted-foreground">
+              この日の売上データはありません
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            {/* サマリーカード */}
+            <Card className="mb-4">
+              <CardContent className="p-4">
+                <h2 className="font-bold text-base mb-3 text-center">日　計</h2>
+                <Separator className="mb-4" />
+
+                {/* 顧客数 */}
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-muted-foreground">顧客数</span>
+                  <span className="text-2xl font-bold tabular-nums">{customerCount}<span className="text-base font-normal ml-1">名</span></span>
+                </div>
+
+                <Separator className="my-3" />
+
+                {/* 部門別 */}
+                <div className="space-y-2 mb-3">
+                  <div className="text-sm font-semibold text-muted-foreground mb-1">部門別売上</div>
+                  {deptSummary.map(dept => (
+                    <div key={dept.name} className="flex justify-between items-center py-1.5 px-3 rounded-md bg-secondary/40">
+                      <span className="font-medium">{dept.name}</span>
+                      <div className="text-right">
+                        <div className="tabular-nums font-semibold">¥{dept.amount.toLocaleString()}</div>
+                        <div className="text-xs text-muted-foreground tabular-nums">税 ¥{dept.taxAmount.toLocaleString()}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <Separator className="my-3" />
+
+                {/* 支払方法別 */}
+                <div className="space-y-1 mb-3">
+                  <div className="text-sm font-semibold text-muted-foreground mb-1">支払方法別</div>
+                  <div className="flex justify-between py-1 px-3">
+                    <span className="text-muted-foreground">現金</span>
+                    <span className="tabular-nums font-medium">¥{cashTotal.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between py-1 px-3">
+                    <span className="text-muted-foreground">掛売</span>
+                    <span className="tabular-nums font-medium">¥{creditTotal.toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <Separator className="my-3" />
+
+                {/* 総計 */}
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-lg font-bold">総　計</span>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold tabular-nums">¥{totalAmount.toLocaleString()}</div>
+                    <div className="text-xs text-muted-foreground tabular-nums">消費税 ¥{totalTax.toLocaleString()}</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* 顧客別明細 */}
+            <Card className="mb-4">
+              <CardContent className="p-4">
+                <h3 className="font-semibold text-sm mb-3 text-muted-foreground">顧客別明細</h3>
+                <div className="space-y-3">
+                  {sales
+                    .slice()
+                    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+                    .map((sale, idx) => {
+                      const sItems = items.filter(i => i.saleId === sale.id);
+                      return (
+                        <div key={sale.id} className="border rounded-lg p-3">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-sm font-semibold">No.{idx + 1}　{sale.time}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {sale.paymentMethod === 'cash' ? '現金' : '掛売'}
+                            </span>
+                          </div>
+                          {sItems.map(item => (
+                            <div key={item.id} className="flex justify-between text-xs text-muted-foreground pl-2 py-0.5">
+                              <span>{item.departmentName}</span>
+                              <span className="tabular-nums">¥{item.unitPrice.toLocaleString()} × {item.quantity} = ¥{item.amount.toLocaleString()}</span>
+                            </div>
+                          ))}
+                          <Separator className="my-1.5" />
+                          <div className="flex justify-between text-sm font-bold">
+                            <span>小計</span>
+                            <span className="tabular-nums">¥{sale.subtotal.toLocaleString()}</span>
+                          </div>
+                          {sale.paymentMethod === 'cash' && sale.changeAmount > 0 && (
+                            <div className="flex justify-between text-xs text-muted-foreground">
+                              <span>おつり</span>
+                              <span className="tabular-nums">¥{sale.changeAmount.toLocaleString()}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Button variant="outline" className="w-full gap-2" onClick={handlePrint}>
+              <Printer className="h-4 w-4" />
+              印刷
+            </Button>
+          </>
+        )}
       </main>
     </div>
   );
